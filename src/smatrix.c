@@ -52,7 +52,7 @@ static int     growlist(Project *, int, int *);
 static int     newlink(Project *, Padjlist, int *);
 static int     linked(Network *, int, int);
 static int     addlink(Network *, int, int, int);
-static int     storesparse(Project *, int);
+static int     storesparse(Project *, int, int);
 static int     sortsparse(Smatrix *, int);
 static void    transpose(int, int *, int *, int *, int *,
                          int *, int *, int *);
@@ -111,7 +111,7 @@ int  createsparse(Project *pr)
 
     // Allocate memory for sparse storage of positions of non-zero
     // coeffs. and store these positions in vector NZSUB
-    ERRCODE(storesparse(pr, net->Njuncs));
+    ERRCODE(storesparse(pr, net->Njuncs, net->Nlinks));
 
     // Free memory used for local adjacency lists and sort
     // row indexes in NZSUB to optimize linsolve()
@@ -140,6 +140,7 @@ int  allocsmatrix(Smatrix *sm, int Nnodes, int Nlinks)
 
     // Memory for linear eqn. solver allocated in alloclinsolve().
     sm->Aij   = NULL;
+    sm->Aijc  = NULL;
     sm->Aii   = NULL;
     sm->F     = NULL;
     sm->temp  = NULL;
@@ -169,7 +170,8 @@ int  alloclinsolve(Smatrix *sm, int n)
     int errcode = 0;
     n = n + 1;    // All arrays are 1-based
 
-    sm->Aij   = (double *)calloc(sm->Ncoeffs + 1, sizeof(double));
+    sm->Aij   = (double *)calloc(n + 1, sizeof(double));
+    sm->Aijc  = (double *)calloc(sm->Ncoeffs + 1, sizeof(double));
     sm->Aii   = (double *)calloc(n, sizeof(double));
     sm->F     = (double *)calloc(n, sizeof(double));
     sm->temp  = (double *)calloc(n, sizeof(double));
@@ -209,6 +211,7 @@ void  freesparse(Project *pr)
     FREE(sm->LNZ);
 
     FREE(sm->Aij);
+    FREE(sm->Aijc);
     FREE(sm->Aii);
     FREE(sm->F);
     FREE(sm->temp);
@@ -595,7 +598,7 @@ int  addlink(Network *net, int i, int j, int n)
 }
 
 
-int  storesparse(Project *pr, int n)
+int  storesparse(Project *pr, int n, int Nlinks)
 /*
 **--------------------------------------------------------------
 ** Input:   n = number of rows in solution matrix
@@ -638,7 +641,10 @@ int  storesparse(Project *pr, int n)
                 m++;
                 k++;
                 sm->NZSUB[k] = j;
-                sm->LNZ[k] = l;
+                if (l > Nlinks)
+                    sm->LNZ[k] = 0;
+                else
+                    sm->LNZ[k] = l;
             }
         }
         sm->XLNZ[i+1] = sm->XLNZ[i] + m;
@@ -754,6 +760,7 @@ int  linsolve(Smatrix *sm, int n)
 {
     double *Aii  = sm->Aii;
     double *Aij  = sm->Aij;
+    double *Aijc = sm->Aijc;
     double *B    = sm->F;
     double *temp = sm->temp;
     int *LNZ     = sm->LNZ;
@@ -769,6 +776,11 @@ int  linsolve(Smatrix *sm, int n)
     memset(link,  0, (n + 1) * sizeof(int));
     memset(first, 0, (n + 1) * sizeof(int));
 
+    // DSB: Copy Aijc[k] = Aij[LNZ[k]]
+    Aij[0] = 0.0;
+    for (k = 1; k <= XLNZ[n+1]; ++k)
+        Aijc[k] = Aij[LNZ[k]];
+
    // Begin numerical factorization of matrix A into L
    //   Compute column L(*,j) for j = 1,...n
    for (j = 1; j <= n; j++)
@@ -783,7 +795,7 @@ int  linsolve(Smatrix *sm, int n)
          // L(*,k) starting at first[k] of L(*,k)
          newk = link[k];
          kfirst = first[k];
-         ljk = Aij[LNZ[kfirst]];
+         ljk = Aijc[kfirst];
          diagj += ljk*ljk;
          istrt = kfirst + 1;
          istop = XLNZ[k+1] - 1;
@@ -801,7 +813,7 @@ int  linsolve(Smatrix *sm, int n)
             for (i = istrt; i <= istop; i++)
             {
                isub = NZSUB[i];
-               temp[isub] += Aij[LNZ[i]]*ljk;
+               temp[isub] += Aijc[i]*ljk;
             }
          }
          k = newk;
@@ -827,8 +839,8 @@ int  linsolve(Smatrix *sm, int n)
          for (i = istrt; i <= istop; i++)
          {
             isub = NZSUB[i];
-            bj = (Aij[LNZ[i]] - temp[isub])/diagj;
-            Aij[LNZ[i]] = bj;
+            bj = (Aijc[i] - temp[isub])/diagj;
+            Aijc[i] = bj;
             temp[isub] = 0.0;
          }
       }
@@ -846,7 +858,7 @@ int  linsolve(Smatrix *sm, int n)
          for (i = istrt; i <= istop; i++)
          {
             isub = NZSUB[i];
-            B[isub] -= Aij[LNZ[i]]*bj;
+            B[isub] -= Aijc[i]*bj;
          }
       }
    }
@@ -862,7 +874,7 @@ int  linsolve(Smatrix *sm, int n)
          for (i = istrt; i <= istop; i++)
          {
             isub = NZSUB[i];
-            bj -= Aij[LNZ[i]]*B[isub];
+            bj -= Aijc[i]*B[isub];
          }
       }
       B[j] = bj/Aii[j];

@@ -691,6 +691,7 @@ typedef struct {
   double
     *Aii,        // Diagonal matrix coeffs.
     *Aij,        // Non-zero, off-diagonal matrix coeffs.
+    *Aijc,       // Copy of Aij used in linsolve
     *F,          // Right hand side vector
     *temp;       // Array used by linear eqn. solver
 

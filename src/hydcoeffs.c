@@ -302,7 +302,7 @@ void   matrixcoeffs(Project *pr)
     // Reset values of all diagonal coeffs. (Aii), off-diagonal
     // coeffs. (Aij), r.h.s. coeffs. (F) and node excess flow (Xflow)
     memset(sm->Aii, 0, (net->Nnodes + 1) * sizeof(double));
-    memset(sm->Aij, 0, (sm->Ncoeffs + 1) * sizeof(double));
+    memset(sm->Aij, 0, (net->Nlinks + 1) * sizeof(double));
     memset(sm->F, 0, (net->Nnodes + 1) * sizeof(double));
     memset(hyd->Xflow, 0, (net->Nnodes + 1) * sizeof(double));
 
