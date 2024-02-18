@@ -655,7 +655,7 @@ void  pipecoeff(Project *pr, int k)
         return;
     }
 
-    q = ABS(hyd->LinkFlow[k]);
+    q = fabs(hyd->LinkFlow[k]);
     ml = pr->network.Link[k].Km;
     r = pr->network.Link[k].R;
 
@@ -701,7 +701,7 @@ void DWpipecoeff(Project *pr, int k)
     Hydraul *hyd = &pr->hydraul;
     Slink   *link = &pr->network.Link[k];
 
-    double q = ABS(hyd->LinkFlow[k]);
+    double q = fabs(hyd->LinkFlow[k]);
     double r = link->R;                         // Resistance coeff.
     double ml = link->Km;                       // Minor loss coeff.
     double e = link->Kc / link->Diam;           // Relative roughness
@@ -814,7 +814,7 @@ void  pumpcoeff(Project *pr, int k)
     }
 
     // Obtain reference to pump object
-    q = ABS(hyd->LinkFlow[k]);
+    q = fabs(hyd->LinkFlow[k]);
     p = findpump(&pr->network, k);
     pump = &pr->network.Pump[p];
 
@@ -849,7 +849,7 @@ void  pumpcoeff(Project *pr, int k)
         // Adjust head loss coefficients for pump speed
         h0 = SQR(setting) * pump->H0;
         n = pump->N;
-        if (ABS(n - 1.0) < TINY) n = 1.0;
+        if (fabs(n - 1.0) < TINY) n = 1.0;
         r = pump->R * pow(setting, 2.0 - n);
         
         // Constant HP pump
@@ -978,7 +978,7 @@ void  gpvcoeff(Project *pr, int k)
         i = (int)ROUND(hyd->LinkSetting[k]);
 
         // Adjusted flow rate
-        q = ABS(hyd->LinkFlow[k]);
+        q = fabs(hyd->LinkFlow[k]);
         q = MAX(q, TINY);
 
         // Intercept and slope of curve segment containing q

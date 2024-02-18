@@ -758,16 +758,16 @@ int  linsolve(Smatrix *sm, int n)
 **--------------------------------------------------------------
 */
 {
-    double *Aii  = sm->Aii;
-    double *Aij  = sm->Aij;
-    double *Aijc = sm->Aijc;
-    double *B    = sm->F;
-    double *temp = sm->temp;
-    int *LNZ     = sm->LNZ;
-    int *XLNZ    = sm->XLNZ;
-    int *NZSUB   = sm->NZSUB;
-    int *link    = sm->link;
-    int *first   = sm->first;
+    double *restrict Aii  = sm->Aii;
+    double *restrict Aij  = sm->Aij;
+    double *restrict Aijc = sm->Aijc;
+    double *restrict B    = sm->F;
+    double *restrict temp = sm->temp;
+    int *restrict LNZ     = sm->LNZ;
+    int *restrict XLNZ    = sm->XLNZ;
+    int *restrict NZSUB   = sm->NZSUB;
+    int *restrict link    = sm->link;
+    int *restrict first   = sm->first;
 
     int    i, istop, istrt, isub, j, k, kfirst, newk;
     double bj, diagj, ljk;

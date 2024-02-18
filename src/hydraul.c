@@ -139,7 +139,7 @@ void inithyd(Project *pr, int initflag)
         {
             hyd->LinkFlow[i] = QZERO;
         }
-        else if (ABS(hyd->LinkFlow[i]) <= QZERO || initflag > 0)
+        else if (fabs(hyd->LinkFlow[i]) <= QZERO || initflag > 0)
         {
             initlinkflow(pr, i, hyd->LinkStatus[i], hyd->LinkSetting[i]);
         }
@@ -571,7 +571,7 @@ int  controls(Project *pr)
         if ((n = control->Node) > 0 && n > net->Njuncs)
         {
             h = hyd->NodeHead[n];
-            vplus = ABS(hyd->NodeDemand[n]);
+            vplus = fabs(hyd->NodeDemand[n]);
             v1 = tankvolume(pr,n - net->Njuncs,h);
             v2 = tankvolume(pr,n - net->Njuncs, control->Grade);
             if (control->Type == LOWLEVEL && v1 <= v2 + vplus) reset = 1;
@@ -690,7 +690,7 @@ int  tanktimestep(Project *pr, long *tstep)
         n = tank->Node;
         h = hyd->NodeHead[n];
         q = hyd->NodeDemand[n];
-        if (ABS(q) <= QZERO) continue;
+        if (fabs(q) <= QZERO) continue;
 
         // Find volume to fill/drain tank
         if      (q > 0.0 && h < tank->Hmax) v = tank->Vmax - tank->V;
@@ -699,7 +699,7 @@ int  tanktimestep(Project *pr, long *tstep)
 
         // Find time to fill/drain tank
         xt = v / q;
-        if (ABS(xt) > *tstep + 1) continue;
+        if (fabs(xt) > *tstep + 1) continue;
         t = (long)ROUND(xt);
         if (t > 0 && t < *tstep)
         {
@@ -748,7 +748,7 @@ int  controltimestep(Project *pr, long *tstep)
             // Find current head and flow into tank
             h = hyd->NodeHead[n];
             q = hyd->NodeDemand[n];
-            if (ABS(q) <= QZERO) continue;
+            if (fabs(q) <= QZERO) continue;
 
             // Find time to reach upper or lower control level
            if ( (h < control->Grade && control->Type == HILEVEL && q > 0.0)
@@ -915,7 +915,7 @@ void  addenergy(Project *pr, long hstep)
         pump = &net->Pump[j];
         k = pump->Link;
         if (pump->Energy.CurrentEffic == 0.0) continue;
-        q = MAX(QZERO, ABS(hyd->LinkFlow[k]));
+        q = MAX(QZERO, fabs(hyd->LinkFlow[k]));
 
         // Find pump-specific energy cost
         if (pump->Ecost > 0.0) c = pump->Ecost;
@@ -976,8 +976,8 @@ void  getenergy(Project *pr, int k, double *kw, double *eff)
     }
 
     // Determine flow and head difference
-    q = ABS(hyd->LinkFlow[k]);
-    dh = ABS(hyd->NodeHead[link->N1] - hyd->NodeHead[link->N2]);
+    q = fabs(hyd->LinkFlow[k]);
+    dh = fabs(hyd->NodeHead[link->N1] - hyd->NodeHead[link->N2]);
 
     // For pumps, find effic. at current flow
     if (link->Type == PUMP)

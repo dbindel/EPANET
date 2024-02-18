@@ -407,19 +407,27 @@ void  newlinkflows(Project *pr, Hydbalance *hbal, double *qsum, double *dqsum)
     int     k, n, n1, n2;
     Slink   *link;
 
+    double qsum_tmp = *qsum;
+    double dqsum_tmp = *dqsum;
+    int Njuncs = net->Njuncs;
+    int Nnodes = net->Nnodes;
+    int Nlinks = net->Nlinks;
+
     // Initialize net inflows (i.e., demands) at fixed grade nodes
-    for (n = net->Njuncs + 1; n <= net->Nnodes; n++)
+    for (n = Njuncs + 1; n <= Nnodes; n++)
     {
         hyd->NodeDemand[n] = 0.0;
     }
 
     // Examine each link
-    for (k = 1; k <= net->Nlinks; k++)
+    for (k = 1; k <= Nlinks; k++)
     {
         // Get link and its end nodes
         link = &net->Link[k];
         n1 = link->N1;
         n2 = link->N2;
+
+        double lfk = hyd->LinkFlow[k];
 
         // Apply flow update formula:
         //   dq = Y - P * (new head loss)
@@ -437,21 +445,21 @@ void  newlinkflows(Project *pr, Hydbalance *hbal, double *qsum, double *dqsum)
         if (link->Type == PUMP)
         {
             n = findpump(net, k);
-            if (net->Pump[n].Ptype == CONST_HP && dq > hyd->LinkFlow[k])
+            if (net->Pump[n].Ptype == CONST_HP && dq > lfk)
             {
-                dq = hyd->LinkFlow[k] / 2.0;
+                dq = lfk / 2.0;
             }
         }
 
         // Update link flow and system flow summation
-        hyd->LinkFlow[k] -= dq;
-        *qsum += ABS(hyd->LinkFlow[k]);
-        *dqsum += ABS(dq);
+        lfk -= dq;
+        qsum_tmp += fabs(lfk);
+        dqsum_tmp += fabs(dq);
 
         // Update identity of element with max. flow change
-        if (ABS(dq) > hbal->maxflowchange)
+        if (fabs(dq) > hbal->maxflowchange)
         {
-            hbal->maxflowchange = ABS(dq);
+            hbal->maxflowchange = fabs(dq);
             hbal->maxflowlink = k;
             hbal->maxflownode = -1;
         }
@@ -459,10 +467,15 @@ void  newlinkflows(Project *pr, Hydbalance *hbal, double *qsum, double *dqsum)
         // Update net flows to fixed grade nodes
         if (hyd->LinkStatus[k] > CLOSED)
         {
-            if (n1 > net->Njuncs) hyd->NodeDemand[n1] -= hyd->LinkFlow[k];
-            if (n2 > net->Njuncs) hyd->NodeDemand[n2] += hyd->LinkFlow[k];
+            if (n1 > net->Njuncs) hyd->NodeDemand[n1] -= lfk;
+            if (n2 > net->Njuncs) hyd->NodeDemand[n2] += lfk;
         }
+
+        hyd->LinkFlow[k] = lfk;
     }
+
+    *qsum = qsum_tmp;
+    *dqsum = dqsum_tmp;
 }
 
 
@@ -500,13 +513,13 @@ void newemitterflows(Project *pr, Hydbalance *hbal, double *qsum,
         hyd->EmitterFlow[i] -= dq;
 
         // Update system flow summation
-        *qsum += ABS(hyd->EmitterFlow[i]);
-        *dqsum += ABS(dq);
+        *qsum += fabs(hyd->EmitterFlow[i]);
+        *dqsum += fabs(dq);
 
         // Update identity of element with max. flow change
-        if (ABS(dq) > hbal->maxflowchange)
+        if (fabs(dq) > hbal->maxflowchange)
         {
-            hbal->maxflowchange = ABS(dq);
+            hbal->maxflowchange = fabs(dq);
             hbal->maxflownode = i;
             hbal->maxflowlink = -1;
         }
@@ -560,13 +573,13 @@ void newdemandflows(Project *pr, Hydbalance *hbal, double *qsum, double *dqsum)
         hyd->DemandFlow[i] -= dq;
 
         // Update system flow summation
-        *qsum += ABS(hyd->DemandFlow[i]);
-        *dqsum += ABS(dq);
+        *qsum += fabs(hyd->DemandFlow[i]);
+        *dqsum += fabs(dq);
 
         // Update identity of element with max. flow change
-        if (ABS(dq) > hbal->maxflowchange)
+        if (fabs(dq) > hbal->maxflowchange)
         {
-            hbal->maxflowchange = ABS(dq);
+            hbal->maxflowchange = fabs(dq);
             hbal->maxflownode = i;
             hbal->maxflowlink = -1;
         }
@@ -602,7 +615,7 @@ void  checkhydbalance(Project *pr, Hydbalance *hbal)
         n2 = link->N2;
         dh = hyd->NodeHead[n1] - hyd->NodeHead[n2];
         headloss = hyd->Y[k] / hyd->P[k];
-        headerror = ABS(dh - headloss);
+        headerror = fabs(dh - headloss);
         if (headerror > hbal->maxheaderror)
         {
             hbal->maxheaderror = headerror;
