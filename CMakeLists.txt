@@ -36,8 +36,8 @@ option(BUILD_TESTS "Build tests (requires Boost)" OFF)
 option(BUILD_PY_LIB "Build library for Python wrapper" OFF)
 option(BUILD_COVERAGE "Build library for coverage" OFF)
 
-set(SUITESPARSE_INCLUDE_DIR /usr/local/include)
-set(SUITESPARSE_LIBRARY_DIR /usr/local/lib)
+set(SUITESPARSE_INCLUDE_DIR "/usr/local/include" CACHE STRING "Include installation directory for SuiteSparse")
+set(SUITESPARSE_LIBRARY_DIR "/usr/local/lib" CACHE STRING "Library installation directory for SuiteSparse")
 
 add_library(suitesparse SHARED IMPORTED)
 set_target_properties(suitesparse PROPERTIES
