@@ -13,11 +13,19 @@
 
 #include <stdio.h>
 #include "epanet2.h"
+#include "suitesparse/cholmod.h"
 
 void  writeConsole(char *s)
 {
     fprintf(stdout, "\r%s", s);
     fflush(stdout);
+}
+
+void print_choldmod_version()
+{
+    int version[3];
+    cholmod_version(version);
+    printf("CHOLMOD version: %d.%d.%d\n", version[0], version[1], version[2]);
 }
 
 int  main(int argc, char *argv[])
@@ -60,6 +68,8 @@ int  main(int argc, char *argv[])
     minor = (version%10000)/100;
     patch = version%100;
     printf("\n... Running EPANET Version %d.%d.%d\n", major, minor, patch);
+
+    print_choldmod_version();
   
     // Assign pointers to file names
     f1 = argv[1];

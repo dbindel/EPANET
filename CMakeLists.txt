@@ -36,6 +36,14 @@ option(BUILD_TESTS "Build tests (requires Boost)" OFF)
 option(BUILD_PY_LIB "Build library for Python wrapper" OFF)
 option(BUILD_COVERAGE "Build library for coverage" OFF)
 
+set(SUITESPARSE_INCLUDE_DIR /usr/local/include)
+set(SUITESPARSE_LIBRARY_DIR /usr/local/lib)
+
+add_library(suitesparse SHARED IMPORTED)
+set_target_properties(suitesparse PROPERTIES
+  IMPORTED_LOCATION "${SUITESPARSE_LIBRARY_DIR}/libcholmod.a"
+  INTERFACE_INCLUDE_DIRECTORIES "${SUITESPARSE_INCLUDE_DIR}"
+)
 
 IF (NOT BUILD_PY_LIB)
   add_subdirectory(run)
