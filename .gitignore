@@ -1,3 +1,7 @@
+/cornell-tests/*
+!/cornell-tests/Makefile
+xc-build
+
 # Compiled Object files
 *.slo
 *.lo
