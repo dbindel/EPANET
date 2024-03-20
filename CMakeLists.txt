@@ -25,9 +25,11 @@
 #   CMake is available at https://cmake.org/download/
 #
 
-cmake_minimum_required (VERSION 2.8.8)
+cmake_minimum_required (VERSION 3.18)
 
 project(EPANET)
+
+set(CMAKE_CXX_STANDARD 17)
 
 # Append local dir to module search path
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -39,11 +41,8 @@ option(BUILD_COVERAGE "Build library for coverage" OFF)
 set(SUITESPARSE_INCLUDE_DIR "/usr/local/include" CACHE STRING "Include installation directory for SuiteSparse")
 set(SUITESPARSE_LIBRARY_DIR "/usr/local/lib" CACHE STRING "Library installation directory for SuiteSparse")
 
-add_library(suitesparse SHARED IMPORTED)
-set_target_properties(suitesparse PROPERTIES
-  IMPORTED_LOCATION "${SUITESPARSE_LIBRARY_DIR}/libcholmod.a"
-  INTERFACE_INCLUDE_DIRECTORIES "${SUITESPARSE_INCLUDE_DIR}"
-)
+find_package(SuiteSparse_config REQUIRED)
+find_package(CHOLMOD REQUIRED)
 
 IF (NOT BUILD_PY_LIB)
   add_subdirectory(run)
@@ -106,5 +105,6 @@ IF(MSVC AND "${CMAKE_VS_PLATFORM_NAME}" MATCHES "(Win32)")
 ELSE(TRUE)
   add_library(epanet2 SHARED ${EPANET_LIB_ALL})
 ENDIF(MSVC AND "${CMAKE_VS_PLATFORM_NAME}" MATCHES "(Win32)")
+target_link_libraries(epanet2 PRIVATE SuiteSparse::CHOLMOD SuiteSparse::SuiteSparseConfig)
 
 target_include_directories(epanet2 PUBLIC ${PROJECT_SOURCE_DIR}/include)

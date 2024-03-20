@@ -13,7 +13,7 @@
 
 #include <stdio.h>
 #include "epanet2.h"
-#include "suitesparse/cholmod.h"
+#include "cholmod.h"
 
 void  writeConsole(char *s)
 {
@@ -25,7 +25,7 @@ void print_choldmod_version()
 {
     int version[3];
     cholmod_version(version);
-    printf("CHOLMOD version: %d.%d.%d\n", version[0], version[1], version[2]);
+    printf("Using CHOLMOD version: %d.%d.%d\n", version[0], version[1], version[2]);
 }
 
 int  main(int argc, char *argv[])

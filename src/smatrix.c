@@ -725,7 +725,43 @@ void  transpose(int n, int *il, int *jl, int *xl, int *ilt, int *jlt,
     }
 }
 
+#define USE_CHOLMOD_LINSOLVE
 
+#ifdef USE_CHOLMOD_LINSOLVE
+extern int linsolve_cholmod(int n, int ncoeffs, int *XLNZ, int *NZSUB, int *LNZ, double *Aii, double *Aij, double* B);
+
+int  linsolve(Smatrix *sm, int n)
+/*
+**--------------------------------------------------------------
+** Input:   sm   = sparse matrix struct
+            n    = number of equations
+** Output:  sm->F = solution values
+**          returns 0 if solution found, or index of
+**          equation causing system to be ill-conditioned
+** Purpose: solves sparse symmetric system of linear
+**          equations using Cholesky factorization
+**
+** NOTE:   This procedure assumes that the solution matrix has
+**         been symbolically factorized with the positions of
+**         the lower triangular, off-diagonal, non-zero coeffs.
+**         stored in the following integer arrays:
+**            XLNZ  (start position of each column in NZSUB)
+**            NZSUB (row index of each non-zero in each column)
+**            LNZ   (position of each NZSUB entry in Aij array)
+**--------------------------------------------------------------
+*/
+{
+    double *Aii  = sm->Aii;
+    double *Aij  = sm->Aij;
+    double *B    = sm->F;
+    int *LNZ     = sm->LNZ;
+    int *XLNZ    = sm->XLNZ;
+    int *NZSUB   = sm->NZSUB;
+
+    fprintf(stderr, "LINSOLVE_CHOLMOD\n");
+    return linsolve_cholmod(n, sm->Ncoeffs, XLNZ, NZSUB, LNZ, Aii, Aij, B);
+}
+#else
 int  linsolve(Smatrix *sm, int n)
 /*
 **--------------------------------------------------------------
@@ -752,6 +788,7 @@ int  linsolve(Smatrix *sm, int n)
 **--------------------------------------------------------------
 */
 {
+    fprintf(stderr, "LINSOLVE_REGULAR\n");
     double *Aii  = sm->Aii;
     double *Aij  = sm->Aij;
     double *B    = sm->F;
@@ -869,3 +906,4 @@ int  linsolve(Smatrix *sm, int n)
    }
    return 0;
 }
+#endif
