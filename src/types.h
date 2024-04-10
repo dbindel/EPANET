@@ -705,6 +705,7 @@ typedef struct {
     *link,       // Array used by linear eqn. solver
     *first;      // Array used by linear eqn. solver
 
+    struct SolverScratch *scratch; // Scratch space for linear solver
 } Smatrix;
 
 // Hydraulics Solver Wrapper
