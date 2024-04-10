@@ -758,7 +758,6 @@ int  linsolve(Smatrix *sm, int n)
     int *XLNZ    = sm->XLNZ;
     int *NZSUB   = sm->NZSUB;
 
-    fprintf(stderr, "LINSOLVE_CHOLMOD\n");
     return linsolve_cholmod(n, sm->Ncoeffs, XLNZ, NZSUB, LNZ, Aii, Aij, B);
 }
 #else
