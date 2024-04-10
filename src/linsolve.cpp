@@ -12,6 +12,11 @@ static cholmod_common common;
 
 extern "C" struct SolverScratch {
   cholmod_sparse *A;
+  cholmod_factor *L;
+  cholmod_dense *b;
+  cholmod_dense *x;
+  cholmod_dense *Y;
+  cholmod_dense *E;
 
   SolverScratch(int n, int ncoeffs);
   ~SolverScratch();
@@ -21,7 +26,10 @@ extern "C" struct SolverScratch {
 extern "C" void alloc_scratch(SolverScratch **scratch, int n, int ncoeffs) {
   *scratch = new SolverScratch(n, ncoeffs);
 }
-extern "C" void free_scratch(SolverScratch **scratch) { delete *scratch; *scratch = nullptr; }
+extern "C" void free_scratch(SolverScratch **scratch) {
+  delete *scratch;
+  *scratch = nullptr;
+}
 extern "C" int linsolve_cholmod(SolverScratch *scratch, int n, int ncoeffs,
                                 const int *XLNZ, const int *NZSUB,
                                 const int *LNZ, const double *Aii,
@@ -29,13 +37,21 @@ extern "C" int linsolve_cholmod(SolverScratch *scratch, int n, int ncoeffs,
 extern "C" void linsolve_init();
 extern "C" void linsolve_finalize();
 
-SolverScratch::SolverScratch(int n, int ncoeffs) {
+SolverScratch::SolverScratch(int n, int ncoeffs)
+    : L(nullptr), Y(nullptr), E(nullptr) {
   int max_nz = ncoeffs + n;
   A = cholmod_allocate_sparse(n, n, max_nz, 0, 1, -1, XDTYPE, &common);
+  b = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
+  x = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
 }
 
 SolverScratch::~SolverScratch() {
   cholmod_free_sparse(&A, &common);
+  cholmod_free_factor(&L, &common);
+  cholmod_free_dense(&b, &common);
+  cholmod_free_dense(&x, &common);
+  cholmod_free_dense(&Y, &common);
+  cholmod_free_dense(&E, &common);
 }
 
 static void create_tril_csc(int n, int ncoeffs, const int *XLNZ,
@@ -78,27 +94,29 @@ extern "C" int linsolve_cholmod(SolverScratch *scratch, int n, int ncoeffs,
                                 const int *XLNZ, const int *NZSUB,
                                 const int *LNZ, const double *Aii,
                                 const double *Aij, double *B) {
-  auto A = scratch->A;
+  auto &A = scratch->A;
+  auto &L = scratch->L;
+  auto &b = scratch->b;
+  auto &x = scratch->x;
+  auto &Y = scratch->Y;
+  auto &E = scratch->E;
 
   create_tril_csc(n, ncoeffs, XLNZ, NZSUB, LNZ, Aii, Aij, A);
 
-  cholmod_factor *L = cholmod_analyze(A, &common);
+  if (L == nullptr) {
+    L = cholmod_analyze(A, &common);
+  }
+
   cholmod_factorize(A, L, &common);
   if (common.status & CHOLMOD_NOT_POSDEF) {
     fprintf(stderr, "Matrix is not positive definite\n");
     // TODO: do something here
   }
 
-  // copy over B
-  cholmod_dense *b = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
+  // copy from B, solve, and copy back
   memcpy(b->x, B + 1, n * sizeof(double));
-
-  cholmod_dense *x = cholmod_solve(CHOLMOD_A, L, b, &common);
+  cholmod_solve2(CHOLMOD_A, L, b, NULL, &x, NULL, &Y, &E, &common);
   memcpy(B + 1, x->x, n * sizeof(double));
-
-  cholmod_free_factor(&L, &common);
-  cholmod_free_dense(&b, &common);
-  cholmod_free_dense(&x, &common);
 
   return 0;
 }
