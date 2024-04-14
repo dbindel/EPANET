@@ -1,6 +1,6 @@
-/cornell-tests/*
-!/cornell-tests/Makefile
-xc-build
+*-build/
+.vscode/
+cornell-tests/
 
 # Compiled Object files
 *.slo

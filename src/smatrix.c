@@ -35,6 +35,17 @@ extern int genmmd(int *neqns, int *xadj, int *adjncy, int *invp, int *perm,
                   int *delta, int *dhead, int *qsize, int *llist, int *marker,
                   int *maxint, int *nofsub);
 
+#define USE_CHOLMOD_LINSOLVE
+#ifdef USE_CHOLMOD_LINSOLVE
+extern void alloc_scratch(struct SolverScratch **scratch, int n, int ncoeffs);
+extern void free_scratch(struct SolverScratch **scratch);
+
+extern int linsolve_cholmod(struct SolverScratch *scratch, int n, int ncoeffs,
+                            const int *XLNZ, const int *NZSUB,
+                            const int *LNZ, const double *Aii,
+                            const double *Aij, double *B);
+#endif
+
 // Exported functions
 int  createsparse(Project *);
 void freesparse(Project *);
@@ -123,6 +134,10 @@ int  createsparse(Project *pr)
 
     // Re-build adjacency lists for future use
     ERRCODE(buildadjlists(net));
+
+#ifdef USE_CHOLMOD_LINSOLVE
+    alloc_scratch(&sm->scratch, net->Njuncs, sm->Ncoeffs);
+#endif
     return errcode;
 }
 
@@ -181,9 +196,9 @@ int  alloclinsolve(Smatrix *sm, int n)
     ERRCODE(MEMCHECK(sm->temp));
     ERRCODE(MEMCHECK(sm->link));
     ERRCODE(MEMCHECK(sm->first));
+
     return errcode;
 }
-
 
 void  freesparse(Project *pr)
 /*
@@ -200,6 +215,9 @@ void  freesparse(Project *pr)
 //    printf("\n");
 //    printf("\n    Processing Time = %7.3f s", gettimer(SmatrixTimer));
 //    printf("\n");
+#ifdef USE_CHOLMOD_LINSOLVE
+    free_scratch(&sm->scratch);
+#endif
 
     FREE(sm->Order);
     FREE(sm->Row);
@@ -643,6 +661,7 @@ int  storesparse(Project *pr, int n)
         }
         sm->XLNZ[i+1] = sm->XLNZ[i] + m;
     }
+
     return errcode;
 }
 
@@ -725,7 +744,39 @@ void  transpose(int n, int *il, int *jl, int *xl, int *ilt, int *jlt,
     }
 }
 
+#ifdef USE_CHOLMOD_LINSOLVE
 
+int  linsolve(Smatrix *sm, int n)
+/*
+**--------------------------------------------------------------
+** Input:   sm   = sparse matrix struct
+            n    = number of equations
+** Output:  sm->F = solution values
+**          returns 0 if solution found, or index of
+**          equation causing system to be ill-conditioned
+** Purpose: solves sparse symmetric system of linear
+**          equations using Cholesky factorization
+**
+** NOTE:   This procedure assumes that the solution matrix has
+**         been symbolically factorized with the positions of
+**         the lower triangular, off-diagonal, non-zero coeffs.
+**         stored in the following integer arrays:
+**            XLNZ  (start position of each column in NZSUB)
+**            NZSUB (row index of each non-zero in each column)
+**            LNZ   (position of each NZSUB entry in Aij array)
+**--------------------------------------------------------------
+*/
+{
+    double *Aii  = sm->Aii;
+    double *Aij  = sm->Aij;
+    double *B    = sm->F;
+    int *LNZ     = sm->LNZ;
+    int *XLNZ    = sm->XLNZ;
+    int *NZSUB   = sm->NZSUB;
+
+    return linsolve_cholmod(sm->scratch, n, sm->Ncoeffs, XLNZ, NZSUB, LNZ, Aii, Aij, B);
+}
+#else
 int  linsolve(Smatrix *sm, int n)
 /*
 **--------------------------------------------------------------
@@ -752,6 +803,7 @@ int  linsolve(Smatrix *sm, int n)
 **--------------------------------------------------------------
 */
 {
+    fprintf(stderr, "LINSOLVE_REGULAR\n");
     double *Aii  = sm->Aii;
     double *Aij  = sm->Aij;
     double *B    = sm->F;
@@ -869,3 +921,4 @@ int  linsolve(Smatrix *sm, int n)
    }
    return 0;
 }
+#endif

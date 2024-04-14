@@ -27,6 +27,9 @@
 #define snprintf _snprintf
 #endif
 
+extern void linsolve_init();
+extern void linsolve_finalize();
+
 /********************************************************************
 
     Project Functions
@@ -60,6 +63,8 @@ int DLLEXPORT EN_deleteproject(EN_Project p)
 **----------------------------------------------------------------
 */
 {
+    linsolve_finalize();
+    
     if (p == NULL) return -1;
     if (p->Openflag) {
       EN_close(p);
@@ -93,6 +98,7 @@ int DLLEXPORT EN_runproject(EN_Project p, const char *inpFile,
 */
 {
     int errcode = 0;
+    linsolve_init();
 
     // Read in project data from an input file
     ERRCODE(EN_open(p, inpFile, rptFile, outFile));
@@ -113,6 +119,8 @@ int DLLEXPORT EN_runproject(EN_Project p, const char *inpFile,
 
     // Return any error or warning code
     if (p->Warnflag) errcode = MAX(errcode, p->Warnflag);
+
+    linsolve_finalize();
     return errcode;
 }
 
@@ -168,6 +176,7 @@ int DLLEXPORT EN_init(EN_Project p, const char *rptFile, const char *outFile,
     convertunits(p);
     p->parser.MaxPats = 0;
     p->Openflag = TRUE;
+    
     return errcode;
 }
 
