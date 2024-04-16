@@ -1,7 +1,7 @@
 import wntr
 from wntr.epanet.io import BinFile
 import numpy as np
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 import tabulate
 import sys
 
@@ -21,7 +21,8 @@ def metrics(df1, df2):
     rel_err.replace([np.inf, -np.inf], np.nan, inplace=True)
     max_rel_err = rel_err.max().max()
     mse = mean_squared_error(df1.values.flatten(), df2.values.flatten())
-    return max_ind_diff, max_sum_diff, max_rel_err, mse
+    mae = mean_absolute_error(df1.values.flatten(), df2.values.flatten())
+    return max_ind_diff, max_sum_diff, max_rel_err, mse, mae
 
 check = ["node", "link"]
 exclude = ["quality"]
@@ -38,4 +39,4 @@ for x in check:
         row.extend(metrics(res_x[key], cor_x[key]))
         data.append(row)
 
-print(tabulate.tabulate(data, headers=["", "Max Ind. Diff.", "Max Sum Diff.", "Max Rel. Err.", "MSE"]))
+print(tabulate.tabulate(data, headers=["", "Max Ind. Diff.", "Max Sum Diff.", "Max Rel. Err.", "MSE", "MAE"]))
