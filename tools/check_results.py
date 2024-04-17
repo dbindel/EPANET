@@ -17,9 +17,14 @@ def metrics(df1, df2):
     max_ind_diff = diffs.max().max()
     sum_diffs = diffs.sum()
     max_sum_diff = sum_diffs.max()
-    rel_err = diffs / df2.replace({0: np.nan})
-    rel_err.replace([np.inf, -np.inf], np.nan, inplace=True)
-    max_rel_err = rel_err.max().max()
+    #rel_err = diffs / df2.replace({0: np.nan})
+    #rel_err.replace([np.inf, -np.inf], np.nan, inplace=True)
+    #max_rel_err = rel_err.max().max()
+    max12 = max(df1.max().max(), df2.max().max())
+    if max12 == 0.0:
+        max_rel_err = np.nan
+    else:
+        max_rel_err = diffs.max().max() / max12
     mse = mean_squared_error(df1.values.flatten(), df2.values.flatten())
     return max_ind_diff, max_sum_diff, max_rel_err, mse
 
