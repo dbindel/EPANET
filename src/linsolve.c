@@ -13,7 +13,6 @@ typedef struct SolverScratch {
     cholmod_factor *L;
     cholmod_dense *b;
     cholmod_dense *x;
-    cholmod_dense *r;
     cholmod_dense *Y;
     cholmod_dense *E;
 } SolverScratch;
@@ -36,10 +35,9 @@ void alloc_scratch(SolverScratch **scratch, int n, int ncoeffs)
     s->A = cholmod_allocate_sparse(n, n, ncoeffs+n, 0, 1, -1, XDTYPE, &common);
     s->b = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
     s->x = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
-    s->r = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
     s->L = NULL;
-    s->Y = NULL;
-    s->E = NULL;
+    s->Y = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
+    s->E = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
     *scratch = s;
 }
 
@@ -50,7 +48,6 @@ void free_scratch(SolverScratch **scratch)
     cholmod_free_factor(&(s->L), &common);
     cholmod_free_dense(&(s->b), &common);
     cholmod_free_dense(&(s->x), &common);
-    cholmod_free_dense(&(s->r), &common);
     cholmod_free_dense(&(s->Y), &common);
     cholmod_free_dense(&(s->E), &common);
     free(*scratch);
@@ -151,9 +148,7 @@ int linsolve_cholmod(SolverScratch *s, int n, int ncoeffs,
     // Check residuals
     double rresid =
         check_resid(n, ncoeffs, XLNZ, NZSUB, LNZ, Aii, Aij,
-                    (double*) (s->b->x)-1,
-                    (double*) (s->x->x)-1,
-                    (double*) (s->r->x)-1);
+                    (double*) (s->b->x)-1, B, (double*) (s->Y->x)-1);
     fprintf(stderr, "Relative resid: %g\n", rresid);
     
     return 0;
