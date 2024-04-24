@@ -118,7 +118,9 @@ int  createsparse(Project *pr)
     // Factorize solution matrix by updating adjacency lists
     // with non-zero connections due to fill-ins
     sm->Ncoeffs = net->Nlinks;
+#ifndef USE_CHOLMOD_LINSOLVE
     ERRCODE(factorize(pr));
+#endif
 
     // Allocate memory for sparse storage of positions of non-zero
     // coeffs. and store these positions in vector NZSUB

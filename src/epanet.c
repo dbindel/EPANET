@@ -63,7 +63,7 @@ int DLLEXPORT EN_deleteproject(EN_Project p)
 **----------------------------------------------------------------
 */
 {
-    linsolve_finalize();
+    //linsolve_finalize();
     
     if (p == NULL) return -1;
     if (p->Openflag) {
