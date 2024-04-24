@@ -4,7 +4,7 @@ run:
 run_prof:
 	rm -rf run.trace
 	xcrun xctrace record --output run.trace --launch \
-		../xc-build/bin/RelWithDebInfo/runepanet NW_Model_EPS.inp results.out
+		../xc-build/bin/RelWithDebInfo/runepanet virtRome.inp results.out
 
 build:
 	( cd ../xc-build ; \
