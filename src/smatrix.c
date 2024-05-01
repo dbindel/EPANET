@@ -747,7 +747,6 @@ void  transpose(int n, int *il, int *jl, int *xl, int *ilt, int *jlt,
 }
 
 #ifdef USE_CHOLMOD_LINSOLVE
-
 int  linsolve(Smatrix *sm, int n)
 /*
 **--------------------------------------------------------------
@@ -779,6 +778,17 @@ int  linsolve(Smatrix *sm, int n)
     return linsolve_cholmod(sm->scratch, n, sm->Ncoeffs, XLNZ, NZSUB, LNZ, Aii, Aij, B);
 }
 #else
+double check_resid(int n, int ncoeffs,
+                   const int* XLNZ,
+                   const int* NZSUB,
+                   const int* LNZ,
+                   const double* Aii,
+                   const double* Aij,
+                   double* B,
+                   double* X,
+                   double* R);
+
+
 int  linsolve(Smatrix *sm, int n)
 /*
 **--------------------------------------------------------------
@@ -805,7 +815,6 @@ int  linsolve(Smatrix *sm, int n)
 **--------------------------------------------------------------
 */
 {
-    fprintf(stderr, "LINSOLVE_REGULAR\n");
     double *Aii  = sm->Aii;
     double *Aij  = sm->Aij;
     double *B    = sm->F;
@@ -822,6 +831,8 @@ int  linsolve(Smatrix *sm, int n)
     memset(temp,  0, (n + 1) * sizeof(double));
     memset(link,  0, (n + 1) * sizeof(int));
     memset(first, 0, (n + 1) * sizeof(int));
+    double* B_copy = (double*) malloc((n + 1) * sizeof(double));
+    memcpy(B_copy, B, (n + 1) * sizeof(double));
 
    // Begin numerical factorization of matrix A into L
    //   Compute column L(*,j) for j = 1,...n
@@ -921,6 +932,13 @@ int  linsolve(Smatrix *sm, int n)
       }
       B[j] = bj/Aii[j];
    }
+
+    // Check residuals
+    double rresid =
+        check_resid(n, sm->Ncoeffs, XLNZ, NZSUB, LNZ, Aii, Aij,
+                    B_copy, B, temp);
+    fprintf(stderr, "Relative resid: %g\n", rresid);
+
    return 0;
 }
 #endif
