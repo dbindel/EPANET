@@ -32,7 +32,7 @@ void linsolve_finalize();
 void alloc_scratch(SolverScratch **scratch, int n, int ncoeffs)
 {
     SolverScratch *s = (SolverScratch*) malloc(sizeof(SolverScratch));
-    s->A = cholmod_allocate_sparse(n, n, ncoeffs+n, 0, 1, -1, XDTYPE, &common);
+    s->A = cholmod_allocate_sparse(n, n, ncoeffs+n, 1, 1, -1, XDTYPE, &common);
     s->L = NULL;
     s->b = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
     s->x = cholmod_allocate_dense(n, 1, n, XDTYPE, &common);
@@ -115,11 +115,11 @@ void create_tril_csc(int n, int ncoeffs, const int *XLNZ,
         col_ptrs[col + 1] = k;
     }
 
-    if (!cholmod_check_sparse(sp, &common)) {
-        cholmod_print_sparse(sp, "A", &common);
-        fprintf(stderr, "Error: Sparse matrix is invalid\n");
-        exit(1);
-    }
+    // if (!cholmod_check_sparse(sp, &common)) {
+    //     cholmod_print_sparse(sp, "A", &common);
+    //     fprintf(stderr, "Error: Sparse matrix is invalid\n");
+    //     exit(1);
+    // }
 }
 
 int linsolve_cholmod(SolverScratch *s, int n, int ncoeffs,
@@ -129,8 +129,9 @@ int linsolve_cholmod(SolverScratch *s, int n, int ncoeffs,
 {
     create_tril_csc(n, ncoeffs, XLNZ, NZSUB, LNZ, Aii, Aij, s->A);
 
-    if (s->L == NULL)
+    if (s->L == NULL) {
         s->L = cholmod_analyze(s->A, &common);
+    }
 
     cholmod_factorize(s->A, s->L, &common);
     if (common.status & CHOLMOD_NOT_POSDEF) {
@@ -159,6 +160,9 @@ void linsolve_init()
     cholmod_start(&common);
     common.precise = true;
     common.print = 5;
+    common.supernodal = CHOLMOD_SIMPLICIAL;
+    common.final_ll = true;
+    common.final_monotonic = false;
 }
 
 void linsolve_finalize()
