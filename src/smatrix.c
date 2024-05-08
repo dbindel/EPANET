@@ -44,6 +44,7 @@ extern int linsolve_cholmod(struct SolverScratch *scratch, int n, int ncoeffs,
                             const int *XLNZ, const int *NZSUB,
                             const int *LNZ, const double *Aii,
                             const double *Aij, double *B);
+extern void linsolve_update_structs(Smatrix* sm, int nlinks, int njuncs);
 #endif
 
 // Exported functions
@@ -139,6 +140,7 @@ int  createsparse(Project *pr)
 
 #ifdef USE_CHOLMOD_LINSOLVE
     alloc_scratch(&sm->scratch, net->Njuncs, sm->Ncoeffs);
+    linsolve_update_structs(sm, net->Nlinks, net->Njuncs);
 #endif
     return errcode;
 }

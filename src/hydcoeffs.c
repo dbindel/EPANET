@@ -65,6 +65,9 @@ static void    prvcoeff(Project *pr, int k, int n1, int n2);
 static void    psvcoeff(Project *pr, int k, int n1, int n2);
 static void    fcvcoeff(Project *pr, int k, int n1, int n2);
 
+#define AII(i)  sm->A[sm->row_ptrs[(i) - 1]]
+#define AIJ(i)  sm->A[sm->map[(i) - 1]]
+
 
 void addlowerbarrier(double dq, double* hloss, double* hgrad)
 /*
@@ -303,6 +306,7 @@ void   matrixcoeffs(Project *pr)
     // coeffs. (Aij), r.h.s. coeffs. (F) and node excess flow (Xflow)
     memset(sm->Aii, 0, (net->Nnodes + 1) * sizeof(double));
     memset(sm->Aij, 0, (sm->Ncoeffs + 1) * sizeof(double));
+    memset(sm->A, 0, (sm->Ncoeffs + net->Njuncs) * sizeof(double));
     memset(sm->F, 0, (net->Nnodes + 1) * sizeof(double));
     memset(hyd->Xflow, 0, (net->Nnodes + 1) * sizeof(double));
 
@@ -351,13 +355,13 @@ void  linkcoeffs(Project *pr)
         hyd->Xflow[n2] += hyd->LinkFlow[k];
 
         // Add to off-diagonal coeff. of linear system matrix
-        sm->Aij[sm->Ndx[k]] -= hyd->P[k];
+        AIJ(sm->Ndx[k]) -= hyd->P[k];
 
         // Update linear system coeffs. associated with start node n1
         // ... node n1 is junction
         if (n1 <= net->Njuncs)
         {
-            sm->Aii[sm->Row[n1]] += hyd->P[k];   // Diagonal coeff.
+            AII(sm->Row[n1]) += hyd->P[k];   // Diagonal coeff.
             sm->F[sm->Row[n1]] += hyd->Y[k];     // RHS coeff.
         }
 
@@ -368,7 +372,7 @@ void  linkcoeffs(Project *pr)
         // ... node n2 is junction
         if (n2 <= net->Njuncs)
         {
-            sm->Aii[sm->Row[n2]] += hyd->P[k];   // Diagonal coeff.
+            AII(sm->Row[n2]) += hyd->P[k];   // Diagonal coeff.
             sm->F[sm->Row[n2]] -= hyd->Y[k];     // RHS coeff.
         }
 
@@ -491,7 +495,7 @@ void  emittercoeffs(Project *pr)
         row = sm->Row[i];
 
         // Addition to matrix diagonal & r.h.s
-        sm->Aii[row] += 1.0 / hgrad;
+        AII(row) += 1.0 / hgrad;
         sm->F[row] += (hloss + node->El) / hgrad;
 
         // Update to node flow excess
@@ -583,7 +587,7 @@ void  demandcoeffs(Project *pr)
         if (hgrad > 0.0)
         {
             row = sm->Row[i];
-            sm->Aii[row] += 1.0 / hgrad;
+            AII(row) += 1.0 / hgrad;
             sm->F[row] += (hloss + net->Node[i].El + hyd->Pmin) / hgrad;
         }
     }
@@ -1121,7 +1125,7 @@ void  prvcoeff(Project *pr, int k, int n1, int n2)
         hyd->P[k] = 0.0;
         hyd->Y[k] = hyd->LinkFlow[k] + hyd->Xflow[n2];   // Force flow balance
         sm->F[j] += (hset * CBIG);                        // Force head = hset
-        sm->Aii[j] += CBIG;                               // at downstream node
+        AII(j) += CBIG;                               // at downstream node
         if (hyd->Xflow[n2] < 0.0)
         {
             sm->F[i] += hyd->Xflow[n2];
@@ -1133,9 +1137,9 @@ void  prvcoeff(Project *pr, int k, int n1, int n2)
     // compute matrix coeffs. using the valvecoeff() function.
 
     valvecoeff(pr, k);
-    sm->Aij[sm->Ndx[k]] -= hyd->P[k];
-    sm->Aii[i] += hyd->P[k];
-    sm->Aii[j] += hyd->P[k];
+    AIJ(sm->Ndx[k]) -= hyd->P[k];
+    AII(i) += hyd->P[k];
+    AII(j) += hyd->P[k];
     sm->F[i] += (hyd->Y[k] - hyd->LinkFlow[k]);
     sm->F[j] -= (hyd->Y[k] - hyd->LinkFlow[k]);
 }
@@ -1173,13 +1177,13 @@ void  psvcoeff(Project *pr, int k, int n1, int n2)
         hyd->P[k] = 0.0;
         hyd->Y[k] = hyd->LinkFlow[k] - hyd->Xflow[n1];   // Force flow balance
         sm->F[i] += (hset * CBIG);                        // Force head = hset
-        sm->Aii[i] += CBIG;                               // at upstream node
+        AII(i) += CBIG;                               // at upstream node
         if (hyd->Xflow[n1] > 0.0)
         {
             sm->F[j] += hyd->Xflow[n1];
         }
-        sm->Aij[sm->Ndx[k]] -= 1.0 / CBIG;             // Preserve connectivity
-        sm->Aii[j] += 1.0 / CBIG;
+        AIJ(sm->Ndx[k]) -= 1.0 / CBIG;             // Preserve connectivity
+        AII(j) += 1.0 / CBIG;
         return;
     }
 
@@ -1187,9 +1191,9 @@ void  psvcoeff(Project *pr, int k, int n1, int n2)
     // compute matrix coeffs. using the valvecoeff() function.
 
     valvecoeff(pr, k);
-    sm->Aij[sm->Ndx[k]] -= hyd->P[k];
-    sm->Aii[i] += hyd->P[k];
-    sm->Aii[j] += hyd->P[k];
+    AIJ(sm->Ndx[k]) -= hyd->P[k];
+    AII(i) += hyd->P[k];
+    AII(j) += hyd->P[k];
     sm->F[i] += (hyd->Y[k] - hyd->LinkFlow[k]);
     sm->F[j] -= (hyd->Y[k] - hyd->LinkFlow[k]);
 }
@@ -1229,9 +1233,9 @@ void  fcvcoeff(Project *pr, int k, int n1, int n2)
         sm->F[i] -= q;
         sm->F[j] += q;
         hyd->P[k] = 1.0 / CBIG;
-        sm->Aij[sm->Ndx[k]] -= hyd->P[k];
-        sm->Aii[i] += hyd->P[k];
-        sm->Aii[j] += hyd->P[k];
+        AIJ(sm->Ndx[k]) -= hyd->P[k];
+        AII(i) += hyd->P[k];
+        AII(j) += hyd->P[k];
     }
 
     // Otherwise treat valve as an open pipe
@@ -1239,9 +1243,9 @@ void  fcvcoeff(Project *pr, int k, int n1, int n2)
     else
     {
         valvecoeff(pr, k);
-        sm->Aij[sm->Ndx[k]] -= hyd->P[k];
-        sm->Aii[i] += hyd->P[k];
-        sm->Aii[j] += hyd->P[k];
+        AIJ(sm->Ndx[k]) -= hyd->P[k];
+        AII(i) += hyd->P[k];
+        AII(j) += hyd->P[k];
         sm->F[i] += (hyd->Y[k] - hyd->LinkFlow[k]);
         sm->F[j] -= (hyd->Y[k] - hyd->LinkFlow[k]);
     }

@@ -705,7 +705,15 @@ typedef struct {
     *link,       // Array used by linear eqn. solver
     *first;      // Array used by linear eqn. solver
 
-    struct SolverScratch *scratch; // Scratch space for linear solver
+  int
+    *row_ptrs,   // Maps Aii indices to A indices
+    *map;        // Maps Aij indices to A indices
+
+  double
+    *A;          // Sparse matrix used by CHOLMOD linear solver
+
+  struct SolverScratch 
+    *scratch;    // Scratch space for CHOLMOD linear solver
 } Smatrix;
 
 // Hydraulics Solver Wrapper
